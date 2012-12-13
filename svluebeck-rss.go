@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"io"
 	/*"os/exec"*/
 	"time"
 	"strings"
@@ -34,20 +35,21 @@ func main() {
 	var last time.Time	// inits with Mon, 01 Jan 0001 00:00:00 +0000
 	{
 		file, err := os.Open(lastTimeFile)
+		defer file.Close()
 		if err == nil {
 			data := make([]byte, 32)
 			count, err := file.Read(data)
-			if err != nil {
+			if err == nil {
+				tmp, err := time.Parse(time.RFC1123Z, strings.TrimSpace(string(data[:count])))
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "[Error] parse last:\n%s\n%s\n", err, string(data[:count]))
+					os.Exit(2)
+				}
+				last = tmp
+			} else if err != io.EOF {
 				fmt.Fprintf(os.Stderr, "[Error] read: %s\n", err)
+				os.Exit(2)
 			}
-
-			tmp, err := time.Parse(time.RFC1123Z, strings.TrimSpace(string(data[:count])))
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "[Error] parse last:\n%s\n%s\n", err, string(data[:count]))
-				return
-			}
-			last = tmp
-			file.Close()
 		}
 	}
 
@@ -69,6 +71,8 @@ func main() {
 			n.link = item.Links[0].Href
 		}
 		n.title = item.Title
+		// XXX: Why did I add this line?
+		//fmt.Println(item.Title);
 		// TODO. strip HTML from News.text (item.Description)
 		news = append(news, n)
 	}
