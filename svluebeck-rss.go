@@ -25,8 +25,7 @@ type News struct {
 
 func main() {
 	feed := rss.New(10, true, nil, itemHandler)
-	//url := "http://www.sv-luebeck.de/de/aktuelles/news.feed?type=rss"	// le old
-	url := "http://www.sv-luebeck.de/de/component/rd_rss/?id=2"
+	url := "http://sv-luebeck.de/de/fahrplanabweichungen.feed?type=rss"
 	if err := feed.Fetch(url, nil); err != nil {
 		fmt.Fprintf(os.Stderr, "[e] %s: %s", url, err)
 		return
