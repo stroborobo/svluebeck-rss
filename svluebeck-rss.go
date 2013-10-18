@@ -34,7 +34,6 @@ func main() {
 	var last time.Time	// inits with Mon, 01 Jan 0001 00:00:00 +0000
 	{
 		file, err := os.Open(lastTimeFile)
-		defer file.Close()
 		if err == nil {
 			data := make([]byte, 32)
 			count, err := file.Read(data)
@@ -50,6 +49,9 @@ func main() {
 				os.Exit(2)
 			}
 		}
+		if file != nil {
+			file.Close()
+		}
 	}
 
 	news := make([]*News, 0, len(items))
@@ -61,6 +63,7 @@ func main() {
 				fmt.Fprintf(os.Stderr, "[Error] can't parse pubDate: %s\n", err)
 				return
 			}
+			// PubDate <= last
 			if !tmp.After(last) {
 				continue
 			}
@@ -76,15 +79,15 @@ func main() {
 		news = append(news, n)
 	}
 
-	for _, n := range news {
-		file, err := os.OpenFile(newsFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-		if err != nil {
-			fmt.Fprint(os.Stderr, "[Error] open: %s\n", err)
-			return
-		}
-		file.WriteString(n.time.Format("02.01.06 15:04:05 -> ") + n.title + "\n")
-		file.Close()
+	file, err := os.OpenFile(newsFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		fmt.Fprint(os.Stderr, "[Error] open: %s\n", err)
+		return
 	}
+	for _, n := range news {
+		file.WriteString(n.time.Format("02.01.06 15:04:05 -> ") + n.title + "\n")
+	}
+	file.Close()
 
 	for _, n := range news {
 		//fmt.Println(n.time.Format("02.01.06 15:04:05 ->"), n.title);
@@ -93,7 +96,7 @@ func main() {
 		}
 	}
 
-	file, err := os.OpenFile(lastTimeFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	file, err = os.OpenFile(lastTimeFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[Error] open: %s\n", err)
 		return
